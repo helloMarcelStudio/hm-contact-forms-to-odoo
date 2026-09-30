@@ -3,7 +3,7 @@
  * Plugin Name:       Forms to Odoo
  * Description:       Sends Contact Form 7 submissions to Odoo (leads, contacts, tickets or any model), with per-form field mapping, a send log and automatic retries.
  * Version:           0.1.5
- * Requires at least: 6.0
+ * Requires at least: 6.5
  * Requires PHP:      8.0
  * Requires Plugins:  contact-form-7
  * Author:            hellomarcel
@@ -22,11 +22,10 @@ define('FTO_URL', plugin_dir_url(__FILE__));
 require FTO_DIR . 'includes/client.php';
 require FTO_DIR . 'includes/log.php';
 require FTO_DIR . 'includes/submission.php';
-
-if (is_admin()) {
-    require FTO_DIR . 'includes/settings.php';
-    require FTO_DIR . 'includes/form-panel.php';
-}
+// also outside wp-admin: the REST API uses their sanitizers and helpers
+require FTO_DIR . 'includes/settings.php';
+require FTO_DIR . 'includes/form-panel.php';
+require FTO_DIR . 'includes/rest.php';
 
 add_action('init', function () {
     load_plugin_textdomain('forms-to-odoo', false, dirname(plugin_basename(FTO_FILE)) . '/languages');

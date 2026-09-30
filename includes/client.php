@@ -21,6 +21,18 @@ function fto_config($key) {
     return '';
 }
 
+// The connection changed: cached Odoo fields and records may be stale
+foreach (['url', 'db', 'api_key'] as $fto_key) {
+    add_action("update_option_fto_$fto_key", 'fto_flush_cache');
+    add_action("add_option_fto_$fto_key", 'fto_flush_cache');
+}
+unset($fto_key);
+
+function fto_flush_cache() {
+    global $wpdb;
+    $wpdb->query("DELETE FROM {$wpdb->options} WHERE option_name LIKE '\\_transient\\_fto\\_%' OR option_name LIKE '\\_transient\\_timeout\\_fto\\_%'");
+}
+
 function fto_is_configured() {
     return fto_config('url') && fto_config('api_key');
 }

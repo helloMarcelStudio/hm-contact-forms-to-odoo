@@ -1,0 +1,150 @@
+/* Forms to Odoo: "Odoo" tab in the Contact Form 7 editor */
+.fto-panel {
+	max-width: 1100px;
+
+	h3 {
+		margin: 24px 0 8px;
+	}
+
+	.components-toggle-control {
+		margin: 12px 0 16px;
+	}
+
+	.fto-model {
+		display: flex;
+		flex-wrap: wrap;
+		align-items: flex-end;
+		gap: 12px;
+
+		.components-base-control {
+			min-width: 260px;
+		}
+	}
+
+	.fto-mapping {
+		margin-bottom: 12px;
+
+		td {
+			vertical-align: top;
+			padding: 10px;
+		}
+
+		td:first-child {
+			width: 34%;
+		}
+
+		td:last-child {
+			width: 36px;
+			text-align: center;
+		}
+	}
+
+	.fto-stack {
+		display: flex;
+		flex-direction: column;
+		gap: 8px;
+	}
+
+	.fto-error {
+		color: #cc1818;
+	}
+
+	.fto-missing,
+	.components-notice {
+		margin: 12px 0;
+	}
+
+	.fto-tags {
+		margin-top: 16px;
+
+		.components-button {
+			margin: 0 4px 4px 0;
+			font-family: monospace;
+		}
+	}
+
+	.fto-choice-map {
+		border-collapse: collapse;
+
+		th {
+			text-align: left;
+			font-weight: 600;
+			padding: 2px 16px 4px 0;
+		}
+
+		td {
+			padding: 3px 16px 3px 0;
+			vertical-align: middle;
+		}
+
+		td:last-child {
+			min-width: 240px;
+		}
+	}
+
+	.fto-transform {
+		display: flex;
+		flex-direction: column;
+		align-items: flex-start;
+		gap: 8px;
+		padding: 8px 12px 12px;
+		border: 1px solid #dcdcde;
+		background: #f6f7f7;
+
+		legend {
+			padding: 0 4px;
+			font-weight: 600;
+		}
+
+		.components-base-control {
+			width: 100%;
+		}
+
+		.code input {
+			font-family: monospace;
+		}
+	}
+
+	.fto-preview {
+		font-size: 12px;
+
+		code {
+			font-size: 12px;
+		}
+
+		.fto-nomatch {
+			color: #996800;
+		}
+	}
+
+	.fto-contact,
+	.fto-test {
+		margin-top: 24px;
+		padding-top: 8px;
+		border-top: 1px solid #dcdcde;
+	}
+
+	.fto-contact-fields {
+		display: flex;
+		flex-direction: column;
+		gap: 12px;
+		max-width: 520px;
+		margin-top: 12px;
+	}
+
+	.fto-samples {
+		margin-bottom: 12px;
+
+		.components-base-control {
+			margin-bottom: 8px;
+		}
+	}
+
+	.fto-test-result pre {
+		white-space: pre-wrap;
+		background: #f6f7f7;
+		padding: 8px;
+		max-height: 260px;
+		overflow: auto;
+	}
+}

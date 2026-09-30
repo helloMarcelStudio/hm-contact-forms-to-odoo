@@ -10,6 +10,7 @@ defined('ABSPATH') || exit;
 const FTO_RETRY_DELAYS = [5, 30, 120, 720];
 // The log holds submitted personal data, so it isn't kept forever
 const FTO_LOG_RETENTION_DAYS = 90;
+const FTO_LOG_PER_PAGE = 20;
 
 function fto_log_table() { global $wpdb; return $wpdb->prefix . 'fto_log'; }
 
@@ -136,6 +137,24 @@ function fto_send_entry($id) {
     ], ['id' => $id]);
     if (!$retry) do_action('fto_failed', $entry, $result);
     return false;
+}
+
+// Manual resend from the log: starts a fresh series of automatic retries
+function fto_resend_entry($id) {
+    global $wpdb;
+    $wpdb->update(fto_log_table(), ['attempts' => 0, 'status' => 'pending'], ['id' => $id, 'status' => 'failed']);
+    $wpdb->update(fto_log_table(), ['attempts' => 0], ['id' => $id, 'status' => 'pending']);
+    return fto_send_entry($id);
+}
+
+// ['sent' => 12, 'pending' => 0, 'failed' => 1]
+function fto_log_counts() {
+    global $wpdb;
+    $counts = ['sent' => 0, 'pending' => 0, 'failed' => 0];
+    foreach ($wpdb->get_results("SELECT status, COUNT(*) AS n FROM " . fto_log_table() . " GROUP BY status") as $row) {
+        $counts[$row->status] = (int) $row->n;
+    }
+    return $counts;
 }
 
 function fto_failed_count() {

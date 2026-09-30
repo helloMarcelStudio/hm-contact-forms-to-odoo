@@ -4,7 +4,7 @@ Send Contact Form 7 submissions to Odoo: per-form field mapping, send log and au
 
 Forms to Odoo turns Contact Form 7 submissions into Odoo records: CRM leads, contacts, helpdesk tickets, project tasks, or records of any other model. Each form gets its own mapping in an **Odoo** tab of the form editor. No code is needed, and a submission is never silently lost: every send is logged and retried if Odoo can't be reached.
 
-- **Requires:** WordPress 6.0+, PHP 8.0+, Contact Form 7, Odoo 19+ (JSON-2 API)
+- **Requires:** WordPress 6.5+, PHP 8.0+, Contact Form 7, Odoo 19+ (JSON-2 API)
 - **License:** GPL-2.0-or-later
 - **Status:** early development (0.1.x)
 
@@ -140,16 +140,36 @@ The plugin uses the JSON-2 API (`POST /json/2/{model}/{method}`, bearer API key)
 ### Project structure
 
 ```
-forms-to-odoo.php      bootstrap, activation, migration from the old mu-plugin
-includes/client.php    Odoo API client, connection test, cached metadata
+forms-to-odoo.php        bootstrap, activation, migration from the old mu-plugin
+includes/client.php      Odoo API client, connection test, cached metadata, contact lookup
 includes/submission.php  CF7 hook, mapping → values, templates, regex transforms
-includes/log.php       log table, retries (WP-Cron), cleanup
-includes/settings.php  Settings → Forms to Odoo (connection, log)
-includes/form-panel.php  "Odoo" tab in the CF7 editor, AJAX endpoints
-assets/admin.js        mapping UI (vanilla JS, no build step)
-assets/admin.css
+includes/log.php         log table, retries (WP-Cron), cleanup
+includes/settings.php    Settings → Forms to Odoo page, failed sends notice
+includes/form-panel.php  "Odoo" tab in the CF7 editor, settings sanitizing
+includes/rest.php        REST API (fto/v1) behind both admin screens
+src/settings/            settings page app (React, @wordpress/components)
+src/form-panel/          "Odoo" tab app (React, @wordpress/components)
+build/                   compiled apps, committed so the plugin runs from git
 uninstall.php
 ```
+
+### REST API
+
+Both admin screens talk to `fto/v1`: `settings`, `test` and `log` (with `log/{id}/resend`) need `manage_options`; `fields`, `records`, `test-send` and `preview` need the capability to edit Contact Form 7 forms.
+
+### Development
+
+The admin screens are React apps built with [`@wordpress/scripts`](https://developer.wordpress.org/block-editor/reference-guides/packages/packages-scripts/) and the [WordPress components](https://wordpress.github.io/gutenberg/). WordPress packages are loaded from WordPress itself, not bundled.
+
+```sh
+npm install
+npm run start    # rebuild on change
+npm run build    # production build into build/, commit it
+npm run lint:js
+npm run env:start  # local WordPress with Contact Form 7 (wp-env, Docker)
+```
+
+Commit `build/` together with the `src/` changes that produced it.
 
 ---
 

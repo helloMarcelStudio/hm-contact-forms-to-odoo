@@ -1,0 +1,85 @@
+/* Forms to Odoo: Settings → Forms to Odoo */
+#fto-settings-app {
+	max-width: 1200px;
+
+	.fto-tabs .components-tab-panel__tab-content {
+		padding-top: 16px;
+	}
+
+	.components-notice {
+		margin: 0 0 16px;
+	}
+
+	.fto-connection {
+		max-width: 640px;
+	}
+
+	.fto-connection-form {
+		display: flex;
+		flex-direction: column;
+		gap: 16px;
+		margin-bottom: 16px;
+	}
+
+	.fto-actions {
+		display: flex;
+		gap: 8px;
+	}
+
+	.fto-filters {
+		display: flex;
+		gap: 4px;
+		margin-bottom: 12px;
+	}
+
+	.fto-log {
+		td {
+			vertical-align: top;
+		}
+
+		.fto-details-column {
+			width: 40%;
+		}
+
+		pre {
+			white-space: pre-wrap;
+			max-height: 260px;
+			overflow: auto;
+			background: #f6f7f7;
+			padding: 8px;
+			margin: 6px 0 0;
+		}
+
+		.fto-error {
+			color: #cc1818;
+		}
+	}
+
+	.fto-badge {
+		display: inline-block;
+		padding: 2px 8px;
+		border-radius: 10px;
+		color: #fff;
+		font-size: 12px;
+		background: #8c8f94;
+
+		&.is-sent {
+			background: #00a32a;
+		}
+
+		&.is-pending {
+			background: #dba617;
+		}
+
+		&.is-failed {
+			background: #d63638;
+		}
+	}
+
+	.fto-pagination {
+		display: flex;
+		align-items: center;
+		gap: 12px;
+		margin: 12px 0;
+	}
+}
