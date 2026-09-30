@@ -4,7 +4,7 @@
  */
 import { __ } from '@wordpress/i18n';
 import { useEffect } from '@wordpress/element';
-import { CheckboxControl, SelectControl } from '@wordpress/components';
+import { Button, CheckboxControl, SelectControl } from '@wordpress/components';
 import { data, usePanel } from './data';
 import { TemplateInput } from './controls';
 
@@ -59,7 +59,18 @@ export default function ContactSection( { model, contact, setContact } ) {
 
 	return (
 		<div className="fto-contact">
-			<h3>{ __( 'Contact', 'forms-to-odoo' ) }</h3>
+			<h3 className="fto-heading-help">
+				{ __( 'Contact', 'forms-to-odoo' ) }
+				<Button
+					icon="info-outline"
+					size="small"
+					label={ __(
+						'In Odoo, a contact is a person or company in the shared address book (res.partner). Leads, tickets and tasks link to one through a field such as Customer (partner_id).',
+						'forms-to-odoo'
+					) }
+					showTooltip
+				/>
+			</h3>
 			<CheckboxControl
 				__nextHasNoMarginBottom
 				label={

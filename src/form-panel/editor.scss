@@ -6,6 +6,16 @@
 		margin: 24px 0 8px;
 	}
 
+	.fto-heading-help {
+		display: flex;
+		align-items: center;
+		gap: 2px;
+
+		.components-button {
+			color: #757575;
+		}
+	}
+
 	.components-toggle-control {
 		margin: 12px 0 16px;
 	}
@@ -147,4 +157,11 @@
 		max-height: 260px;
 		overflow: auto;
 	}
+}
+
+// Tooltips are portaled outside the panel and don't wrap by default: the
+// help texts are sentences. This stylesheet only loads in the form editor.
+.components-tooltip {
+	max-width: 320px;
+	white-space: normal;
 }
