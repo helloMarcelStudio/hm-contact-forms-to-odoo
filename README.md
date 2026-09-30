@@ -165,4 +165,4 @@ uninstall.php
 
 ## Credits
 
-Built by [hellomarcel](https://marcel-pirnay.be).
+Built by [hellomarcel.be](https://hellomarcel.be).
