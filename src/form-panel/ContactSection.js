@@ -4,9 +4,9 @@
  */
 import { __ } from '@wordpress/i18n';
 import { useEffect } from '@wordpress/element';
-import { Button, CheckboxControl } from '@wordpress/components';
+import { CheckboxControl } from '@wordpress/components';
 import { data, usePanel } from './data';
-import { Select, TemplateInput } from './controls';
+import { HelpTip, Select, TemplateInput } from './controls';
 
 // First guess from the form's tag names, e.g. [your-email]
 function guessTemplates( contact ) {
@@ -61,14 +61,11 @@ export default function ContactSection( { model, contact, setContact } ) {
 		<div className="fto-contact">
 			<h3 className="fto-heading-help">
 				{ __( 'Contact', 'forms-to-odoo' ) }
-				<Button
-					icon="info-outline"
-					size="small"
-					label={ __(
+				<HelpTip
+					text={ __(
 						'In Odoo, a contact is a person or company in the shared address book (res.partner). Leads, tickets and tasks link to one through a field such as Customer (partner_id).',
 						'forms-to-odoo'
 					) }
-					showTooltip
 				/>
 			</h3>
 			<CheckboxControl
@@ -105,58 +102,145 @@ export default function ContactSection( { model, contact, setContact } ) {
 				}
 			/>
 			{ contact.enabled && (
-				<div className="fto-contact-fields">
-					<TemplateInput
-						label={ __( 'Email', 'forms-to-odoo' ) }
-						value={ contact.email || '' }
-						onChange={ set( 'email' ) }
-					/>
-					{ ! isPartner && (
-						<>
-							<Select
-								label={ __( 'Set it in', 'forms-to-odoo' ) }
-								showSelectedHint
-								value={ contact.field }
-								options={ partnerFields.map(
-									( [ name, f ] ) => ( {
-										value: name,
-										label: f.label,
-										hint: name,
-									} )
-								) }
-								onChange={ set( 'field' ) }
+				<table className="widefat fto-mapping fto-contact-table">
+					<thead>
+						<tr>
+							<th>{ __( 'Contact', 'forms-to-odoo' ) }</th>
+							<th>{ __( 'Value', 'forms-to-odoo' ) }</th>
+						</tr>
+					</thead>
+					<tbody>
+						<Row
+							label={ __( 'Email', 'forms-to-odoo' ) }
+							help={ __(
+								'Look for existing contact with this email',
+								'forms-to-odoo'
+							) }
+						>
+							<TemplateInput
+								label={ __( 'Email', 'forms-to-odoo' ) }
+								hideLabelFromVision
+								value={ contact.email || '' }
+								onChange={ set( 'email' ) }
 							/>
-							<CheckboxControl
-								__nextHasNoMarginBottom
-								label={ __(
-									'Create the contact when none has this email',
-									'forms-to-odoo'
-								) }
-								checked={ !! contact.create }
-								onChange={ set( 'create' ) }
-							/>
-							{ contact.create && (
-								<>
-									<TemplateInput
-										label={ __( 'Name', 'forms-to-odoo' ) }
-										placeholder={ __(
-											'e.g. [your-name] (the email if empty)',
+						</Row>
+						{ ! isPartner && (
+							<>
+								<Row
+									label={ __( 'Set it in', 'forms-to-odoo' ) }
+									help={ __(
+										'The record field that links to the contact',
+										'forms-to-odoo'
+									) }
+								>
+									<Select
+										label={ __(
+											'Set it in',
 											'forms-to-odoo'
 										) }
-										value={ contact.name || '' }
-										onChange={ set( 'name' ) }
+										hideLabelFromVision
+										showSelectedHint
+										value={ contact.field }
+										options={ partnerFields.map(
+											( [ name, f ] ) => ( {
+												value: name,
+												label: f.label,
+												hint: name,
+											} )
+										) }
+										onChange={ set( 'field' ) }
 									/>
-									<TemplateInput
-										label={ __( 'Phone', 'forms-to-odoo' ) }
-										value={ contact.phone || '' }
-										onChange={ set( 'phone' ) }
+								</Row>
+								<Row
+									label={ __(
+										'What to do if no contact exists with this email',
+										'forms-to-odoo'
+									) }
+								>
+									<CheckboxControl
+										__nextHasNoMarginBottom
+										label={ __(
+											'Create the contact',
+											'forms-to-odoo'
+										) }
+										help={
+											contact.create
+												? null
+												: __(
+														'The record is sent without a contact.',
+														'forms-to-odoo'
+													)
+										}
+										checked={ !! contact.create }
+										onChange={ set( 'create' ) }
 									/>
-								</>
-							) }
-						</>
-					) }
-				</div>
+								</Row>
+								{ contact.create && (
+									<>
+										<Row
+											label={ __(
+												'Name',
+												'forms-to-odoo'
+											) }
+											help={ __(
+												'Of the new contact',
+												'forms-to-odoo'
+											) }
+										>
+											<TemplateInput
+												label={ __(
+													'Name',
+													'forms-to-odoo'
+												) }
+												hideLabelFromVision
+												placeholder={ __(
+													'e.g. [your-name] (the email if empty)',
+													'forms-to-odoo'
+												) }
+												value={ contact.name || '' }
+												onChange={ set( 'name' ) }
+											/>
+										</Row>
+										<Row
+											label={ __(
+												'Phone',
+												'forms-to-odoo'
+											) }
+											help={ __(
+												'Of the new contact',
+												'forms-to-odoo'
+											) }
+										>
+											<TemplateInput
+												label={ __(
+													'Phone',
+													'forms-to-odoo'
+												) }
+												hideLabelFromVision
+												value={ contact.phone || '' }
+												onChange={ set( 'phone' ) }
+											/>
+										</Row>
+									</>
+								) }
+							</>
+						) }
+					</tbody>
+				</table>
 			) }
 		</div>
+	);
+}
+
+// A row like the mapping's: what it is on the left, the control on the right
+function Row( { label, help, children } ) {
+	return (
+		<tr>
+			<td>
+				<strong>{ label }</strong>
+				{ help && <div className="description">{ help }</div> }
+			</td>
+			<td>{ children }</td>
+		</tr>
 	);
 }

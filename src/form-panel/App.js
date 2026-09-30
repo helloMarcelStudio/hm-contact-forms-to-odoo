@@ -18,6 +18,7 @@ import { Select, TagButtons } from './controls';
 import MappingRow from './MappingRow';
 import ContactSection from './ContactSection';
 import TestSection from './TestSection';
+import Summary from './Summary';
 
 const CONTACT_DEFAULTS = {
 	enabled: false,
@@ -138,134 +139,154 @@ export default function App( { store } ) {
 
 	return (
 		<PanelContext.Provider value={ context }>
-			<ToggleControl
-				__nextHasNoMarginBottom
-				label={ __(
-					'Send submissions of this form to Odoo',
-					'forms-to-odoo'
-				) }
-				checked={ !! settings.enabled }
-				onChange={ ( enabled ) => update( { enabled } ) }
-			/>
-
-			<div className="fto-model">
-				<Select
-					label={ __( 'Create a', 'forms-to-odoo' ) }
-					showSelectedHint
-					value={ isKnown ? settings.model : '__other' }
-					options={ [
-						...Object.entries( data.models ).map(
-							( [ key, label ] ) => ( {
-								value: key,
-								label,
-								hint: key,
-							} )
-						),
-						{
-							value: '__other',
-							label: __( 'Other model…', 'forms-to-odoo' ),
-						},
-					] }
-					onChange={ ( value ) =>
-						value === '__other'
-							? ( setModelDraft( '' ),
-								update( { model: '', mapping: [] } ) )
-							: chooseModel( value )
-					}
-				/>
-				{ ! isKnown && (
-					<TextControl
+			<div className={ ready ? 'fto-layout' : undefined }>
+				<div className="fto-main">
+					<ToggleControl
 						__nextHasNoMarginBottom
-						__next40pxDefaultSize
 						label={ __(
-							'Technical model name, e.g. x_bookings',
+							'Send submissions of this form to Odoo',
 							'forms-to-odoo'
 						) }
-						value={ modelDraft }
-						onChange={ setModelDraft }
-						onBlur={ () => chooseModel( modelDraft ) }
+						checked={ !! settings.enabled }
+						onChange={ ( enabled ) => update( { enabled } ) }
 					/>
-				) }
-				{ data.configured && settings.model && (
-					<Button
-						variant="link"
-						onClick={ refresh }
-						label={ __(
-							'Fields and lists (sources, tags, teams…) are kept 10 minutes. Refresh after adding something in Odoo.',
-							'forms-to-odoo'
+
+					<div className="fto-model">
+						<Select
+							label={ __( 'Create a', 'forms-to-odoo' ) }
+							showSelectedHint
+							value={ isKnown ? settings.model : '__other' }
+							options={ [
+								...Object.entries( data.models ).map(
+									( [ key, label ] ) => ( {
+										value: key,
+										label,
+										hint: key,
+									} )
+								),
+								{
+									value: '__other',
+									label: __(
+										'Other model…',
+										'forms-to-odoo'
+									),
+								},
+							] }
+							onChange={ ( value ) =>
+								value === '__other'
+									? ( setModelDraft( '' ),
+										update( { model: '', mapping: [] } ) )
+									: chooseModel( value )
+							}
+						/>
+						{ ! isKnown && (
+							<TextControl
+								__nextHasNoMarginBottom
+								__next40pxDefaultSize
+								label={ __(
+									'Technical model name, e.g. x_bookings',
+									'forms-to-odoo'
+								) }
+								value={ modelDraft }
+								onChange={ setModelDraft }
+								onBlur={ () => chooseModel( modelDraft ) }
+							/>
 						) }
-						showTooltip
-					>
-						{ __( 'Refresh Odoo fields', 'forms-to-odoo' ) }
-					</Button>
+						{ data.configured && settings.model && (
+							<Button
+								variant="link"
+								onClick={ refresh }
+								label={ __(
+									'Fields and lists (sources, tags, teams…) are kept 10 minutes. Refresh after adding something in Odoo.',
+									'forms-to-odoo'
+								) }
+								showTooltip
+							>
+								{ __( 'Refresh Odoo fields', 'forms-to-odoo' ) }
+							</Button>
+						) }
+					</div>
+
+					{ ! data.configured && (
+						<Notice
+							status="warning"
+							isDismissible={ false }
+							actions={ [
+								{
+									label: __(
+										'Connect Odoo',
+										'forms-to-odoo'
+									),
+									url: data.settingsUrl,
+								},
+							] }
+						>
+							{ __(
+								'Connect Odoo first to choose fields.',
+								'forms-to-odoo'
+							) }
+						</Notice>
+					) }
+					{ data.configured && settings.model && ! fields && (
+						<p className="description">
+							<Spinner />{ ' ' }
+							{ __( 'Loading from Odoo…', 'forms-to-odoo' ) }
+						</p>
+					) }
+					{ fieldsError && (
+						<Notice status="error" isDismissible={ false }>
+							{ fieldsError }
+						</Notice>
+					) }
+
+					{ ready && (
+						<>
+							<ContactSection
+								model={ settings.model }
+								contact={ settings.contact }
+								setContact={ ( contact ) =>
+									update( { contact } )
+								}
+							/>
+							<Mapping
+								settings={ settings }
+								setRow={ setRow }
+								removeRow={ removeRow }
+							/>
+							<Button
+								variant="secondary"
+								onClick={ () =>
+									update( {
+										mapping: [
+											...settings.mapping,
+											{
+												field: '',
+												type: 'char',
+												value: '',
+											},
+										],
+									} )
+								}
+							>
+								{ __( 'Add a field', 'forms-to-odoo' ) }
+							</Button>
+							<MissingRequired
+								fields={ fields }
+								mapping={ settings.mapping }
+							/>
+							<TagButtons />
+							<TestSection
+								settings={ settings }
+								samples={ samples }
+								setSamples={ setSamples }
+							/>
+						</>
+					) }
+				</div>
+				{ ready && (
+					<Summary settings={ settings } samples={ samples } />
 				) }
 			</div>
-
-			{ ! data.configured && (
-				<Notice
-					status="warning"
-					isDismissible={ false }
-					actions={ [
-						{
-							label: __( 'Connect Odoo', 'forms-to-odoo' ),
-							url: data.settingsUrl,
-						},
-					] }
-				>
-					{ __(
-						'Connect Odoo first to choose fields.',
-						'forms-to-odoo'
-					) }
-				</Notice>
-			) }
-			{ data.configured && settings.model && ! fields && (
-				<p className="description">
-					<Spinner /> { __( 'Loading from Odoo…', 'forms-to-odoo' ) }
-				</p>
-			) }
-			{ fieldsError && (
-				<Notice status="error" isDismissible={ false }>
-					{ fieldsError }
-				</Notice>
-			) }
-
-			{ ready && (
-				<>
-					<Mapping
-						settings={ settings }
-						setRow={ setRow }
-						removeRow={ removeRow }
-					/>
-					<Button
-						variant="secondary"
-						onClick={ () =>
-							update( {
-								mapping: [
-									...settings.mapping,
-									{ field: '', type: 'char', value: '' },
-								],
-							} )
-						}
-					>
-						{ __( 'Add a field', 'forms-to-odoo' ) }
-					</Button>
-					<MissingRequired
-						fields={ fields }
-						mapping={ settings.mapping }
-					/>
-					<TagButtons />
-					<ContactSection
-						model={ settings.model }
-						contact={ settings.contact }
-						setContact={ ( contact ) => update( { contact } ) }
-					/>
-					<TestSection
-						settings={ settings }
-						samples={ samples }
-						setSamples={ setSamples }
-					/>
-				</>
-			) }
 		</PanelContext.Provider>
 	);
 }

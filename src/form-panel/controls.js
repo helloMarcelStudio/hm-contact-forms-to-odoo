@@ -3,9 +3,11 @@
  * tag buttons insert into, and the loading / error state of Odoo lists.
  */
 import { __ } from '@wordpress/i18n';
+import { useState } from '@wordpress/element';
 import {
 	Button,
 	CustomSelectControl,
+	Popover,
 	Spinner,
 	TextControl,
 	TextareaControl,
@@ -136,5 +138,48 @@ export function Select( { value, options, onChange, ...props } ) {
 			onChange={ ( { selectedItem } ) => onChange( selectedItem.key ) }
 			{ ...props }
 		/>
+	);
+}
+
+/**
+ * An ⓘ button whose explanation opens on hover, click or keyboard focus
+ * (a plain tooltip only shows after a hover delay, and never on touch).
+ *
+ * @param {Object} props
+ * @param {string} props.text The explanation, one or two sentences.
+ * @return {Element} The button and its bubble.
+ */
+export function HelpTip( { text } ) {
+	const [ open, setOpen ] = useState( false );
+	const [ anchor, setAnchor ] = useState( null );
+	return (
+		<span
+			className="fto-helptip"
+			onMouseEnter={ () => setOpen( true ) }
+			onMouseLeave={ () => setOpen( false ) }
+		>
+			<Button
+				ref={ setAnchor }
+				icon="info-outline"
+				size="small"
+				label={ text }
+				showTooltip={ false }
+				aria-expanded={ open }
+				onClick={ () => setOpen( ( o ) => ! o ) }
+				onFocus={ () => setOpen( true ) }
+				onBlur={ () => setOpen( false ) }
+			/>
+			{ open && (
+				<Popover
+					anchor={ anchor }
+					placement="top"
+					focusOnMount={ false }
+					className="fto-helptip-popover"
+					onClose={ () => setOpen( false ) }
+				>
+					{ text }
+				</Popover>
+			) }
+		</span>
 	);
 }

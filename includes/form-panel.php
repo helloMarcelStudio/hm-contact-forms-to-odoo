@@ -142,13 +142,16 @@ add_action('admin_enqueue_scripts', function () {
         'samples'     => (object) fto_sample_values($contact_form),
         'choices'     => (object) fto_form_choices($contact_form),
         'formId'      => $contact_form->id(),
+        'formTitle'   => $contact_form->title(),
         'textTypes'   => FTO_TEXT_TYPES,
     ]);
 });
 
 /**
- * A plausible value for each field of the form, used by the test send:
- * [tag name => value]. Lists take their first real option.
+ * A realistic value for each field of the form, used by the test send and
+ * the summary: [tag name => value]. Guessed from the field's type, then its
+ * name (first-name, company, city…); lists take their first real option.
+ * Emails use example.com, which never reaches anyone.
  */
 function fto_sample_values($contact_form) {
     $samples = [];
@@ -157,19 +160,46 @@ function fto_sample_values($contact_form) {
         if (!$tag->name || isset($samples[$tag->name]) || $tag->basetype === 'group') continue;
         $options = in_array($tag->basetype, ['select', 'radio', 'checkbox'], true) ? fto_tag_options($tag) : [];
         $samples[$tag->name] = match ($tag->basetype) {
-            'email'                        => 'test@example.com',
-            'tel'                          => '0470 00 00 00',
-            'url'                          => home_url('/'),
-            'number', 'range'              => '1',
-            'date'                         => wp_date('Y-m-d'),
-            'textarea'                     => __('Test message sent from the Forms to Odoo settings.', 'forms-to-odoo'),
+            'email'                        => 'marie.dubois@example.com',
+            'tel'                          => '+32 470 12 34 56',
+            'url'                          => 'https://www.example.com',
+            'number', 'range'              => '12',
+            'date'                         => wp_date('Y-m-d', strtotime('+2 weeks')),
+            'textarea'                     => __("Hello,\nWe are a group of 12 people and would like to book a guided tour in May. Could you send us your availability and prices?\nThank you!", 'forms-to-odoo'),
             'select', 'radio', 'checkbox'  => (string) ($options[0] ?? ''),
             'acceptance'                   => '1',
             'file', 'submit', 'quiz'       => '',
-            default                        => sprintf(__('Test %s', 'forms-to-odoo'), $tag->name),
+            default                        => fto_sample_text($tag->name),
         };
     }
     return $samples;
+}
+
+// A text field's sample, from its name: "your-name" → "Marie Dubois"
+function fto_sample_text($name) {
+    $guesses = [
+        '/first|prenom|prénom|given/i'         => 'Marie',
+        '/last|surname|family|^nom$/i'         => 'Dubois',
+        '/company|organi[sz]|soci[eé]t|business|firm/i' => 'Atelier Dubois',
+        '/mail/i'                              => 'marie.dubois@example.com',
+        '/phone|tel|gsm|mobile/i'              => '+32 470 12 34 56',
+        '/name|nom/i'                          => 'Marie Dubois',
+        '/subject|sujet|objet|topic/i'         => __('Guided tour for a group', 'forms-to-odoo'),
+        '/street|address|adresse|rue/i'        => 'Rue de la Loi 16',
+        '/zip|postal|postcode|cp$/i'           => '1000',
+        '/city|ville|town|locality/i'          => 'Brussels',
+        '/country|pays/i'                      => 'Belgium',
+        '/vat|tva/i'                           => 'BE0123456789',
+        '/url|website|site/i'                  => 'https://www.example.com',
+        '/job|function|fonction|title|role/i'  => __('Office manager', 'forms-to-odoo'),
+        '/budget|price|amount|montant/i'       => '1500',
+        '/date|day|jour/i'                     => wp_date('Y-m-d', strtotime('+2 weeks')),
+    ];
+    foreach ($guesses as $pattern => $value) {
+        if (preg_match($pattern, $name)) return $value;
+    }
+    // "your-message-extra" → "Message extra"
+    return ucfirst(trim(str_replace(['your-', '-', '_'], ['', ' ', ' '], $name)));
 }
 
 // Form fields with a fixed list of options: [tag name => [option, …]]

@@ -134,6 +134,27 @@ add_action('rest_api_init', function () {
     ]);
 
     /**
+     * What a submission with the test values would send, without sending
+     * it: the Odoo values and the contact to look up. Drawn as the
+     * summary next to the mapping.
+     */
+    register_rest_route('fto/v1', '/summary', [
+        'methods'             => 'POST',
+        'permission_callback' => $editor,
+        'callback'            => function (WP_REST_Request $request) {
+            $contact_form = WPCF7_ContactForm::get_instance((int) $request['form_id']);
+            $settings = fto_sanitize_settings($request['settings']);
+            if (!$contact_form || !$settings) return new WP_Error('fto_invalid', __('Invalid request', 'forms-to-odoo'), ['status' => 400]);
+
+            $posted = fto_sanitize_samples($request['samples']);
+            return [
+                'values'  => (object) fto_prepare_values($contact_form, $posted, $settings),
+                'contact' => fto_contact_for($settings, $posted),
+            ];
+        },
+    ]);
+
+    /**
      * Live preview of a text row: the template filled with the test values,
      * then its transform, computed by the same PHP code as a real
      * submission (PHP and JavaScript regexes differ).
