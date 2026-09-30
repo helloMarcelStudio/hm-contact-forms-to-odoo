@@ -9,13 +9,12 @@ import { useEffect, useMemo, useRef, useState } from '@wordpress/element';
 import {
 	Button,
 	Notice,
-	SelectControl,
 	Spinner,
 	TextControl,
 	ToggleControl,
 } from '@wordpress/components';
 import { data, forgetRecords, PanelContext } from './data';
-import { TagButtons } from './controls';
+import { Select, TagButtons } from './controls';
 import MappingRow from './MappingRow';
 import ContactSection from './ContactSection';
 import TestSection from './TestSection';
@@ -150,16 +149,16 @@ export default function App( { store } ) {
 			/>
 
 			<div className="fto-model">
-				<SelectControl
-					__nextHasNoMarginBottom
-					__next40pxDefaultSize
+				<Select
 					label={ __( 'Create a', 'forms-to-odoo' ) }
+					showSelectedHint
 					value={ isKnown ? settings.model : '__other' }
 					options={ [
 						...Object.entries( data.models ).map(
 							( [ key, label ] ) => ( {
 								value: key,
-								label: `${ label } (${ key })`,
+								label,
+								hint: key,
 							} )
 						),
 						{

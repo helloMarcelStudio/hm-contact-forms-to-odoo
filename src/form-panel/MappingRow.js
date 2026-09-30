@@ -9,11 +9,10 @@ import {
 	Button,
 	ComboboxControl,
 	FormTokenField,
-	SelectControl,
 	TextControl,
 } from '@wordpress/components';
 import { data, MULTILINE, useOdooOptions, usePanel } from './data';
-import { OdooStatus, TemplateInput } from './controls';
+import { OdooStatus, Select, TemplateInput } from './controls';
 
 const CHOICE_TYPES = [ 'selection', 'many2one', 'many2many' ];
 
@@ -102,9 +101,7 @@ function ValueInput( { row, setRow } ) {
 		const fromForm = row.source === 'form';
 		return (
 			<div className="fto-stack">
-				<SelectControl
-					__nextHasNoMarginBottom
-					__next40pxDefaultSize
+				<Select
 					label={ __( 'Value', 'forms-to-odoo' ) }
 					hideLabelFromVision
 					value={ fromForm ? 'form' : 'fixed' }
@@ -155,9 +152,7 @@ function FixedChoice( { row, setRow, field } ) {
 
 	if ( field.type === 'selection' ) {
 		return (
-			<SelectControl
-				__nextHasNoMarginBottom
-				__next40pxDefaultSize
+			<Select
 				label={ field.label }
 				hideLabelFromVision
 				value={ row.value || '' }
@@ -267,9 +262,7 @@ function FormSource( { row, setRow, field } ) {
 
 	return (
 		<div className="fto-stack">
-			<SelectControl
-				__nextHasNoMarginBottom
-				__next40pxDefaultSize
+			<Select
 				label={ __( 'Form field', 'forms-to-odoo' ) }
 				value={ row.tag || '' }
 				options={ [
@@ -306,8 +299,7 @@ function FormSource( { row, setRow, field } ) {
 									<td>{ option }</td>
 									<td>
 										{ field.type === 'selection' ? (
-											<SelectControl
-												__nextHasNoMarginBottom
+											<Select
 												label={ option }
 												hideLabelFromVision
 												value={ String(
@@ -440,9 +432,7 @@ function Transform( { row, setRow } ) {
 				value={ t.replace || '' }
 				onChange={ set( 'replace' ) }
 			/>
-			<SelectControl
-				__nextHasNoMarginBottom
-				__next40pxDefaultSize
+			<Select
 				label={ __( "If it doesn't match", 'forms-to-odoo' ) }
 				value={ t.nomatch === 'empty' ? 'empty' : 'keep' }
 				options={ [

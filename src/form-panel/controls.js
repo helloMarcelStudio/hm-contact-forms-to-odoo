@@ -5,6 +5,7 @@
 import { __ } from '@wordpress/i18n';
 import {
 	Button,
+	CustomSelectControl,
 	Spinner,
 	TextControl,
 	TextareaControl,
@@ -103,4 +104,37 @@ export function OdooStatus( { loading, error } ) {
 		);
 	}
 	return null;
+}
+
+/**
+ * A styled dropdown (CustomSelectControl) with the SelectControl API used
+ * across the tab: options as [{ value, label, hint }], onChange(value).
+ * A hint, e.g. a technical name, is shown on the right of the option.
+ *
+ * @param {Object}                  props
+ * @param {string}                  props.value    The selected value.
+ * @param {Array}                   props.options  [{ value, label, hint }].
+ * @param {(value: string) => void} props.onChange Called with the new value.
+ * @return {Element} The control.
+ */
+export function Select( { value, options, onChange, ...props } ) {
+	const items = options.map( ( o ) => ( {
+		key: String( o.value ),
+		name: o.label,
+		hint: o.hint,
+	} ) );
+	// like a native select, show the first option when nothing matches
+	const selected =
+		items.find( ( item ) => item.key === String( value ?? '' ) ) ||
+		items[ 0 ];
+	return (
+		<CustomSelectControl
+			__next40pxDefaultSize
+			className="fto-select"
+			options={ items }
+			value={ selected }
+			onChange={ ( { selectedItem } ) => onChange( selectedItem.key ) }
+			{ ...props }
+		/>
+	);
 }

@@ -4,9 +4,9 @@
  */
 import { __ } from '@wordpress/i18n';
 import { useEffect } from '@wordpress/element';
-import { Button, CheckboxControl, SelectControl } from '@wordpress/components';
+import { Button, CheckboxControl } from '@wordpress/components';
 import { data, usePanel } from './data';
-import { TemplateInput } from './controls';
+import { Select, TemplateInput } from './controls';
 
 // First guess from the form's tag names, e.g. [your-email]
 function guessTemplates( contact ) {
@@ -113,15 +113,15 @@ export default function ContactSection( { model, contact, setContact } ) {
 					/>
 					{ ! isPartner && (
 						<>
-							<SelectControl
-								__nextHasNoMarginBottom
-								__next40pxDefaultSize
+							<Select
 								label={ __( 'Set it in', 'forms-to-odoo' ) }
+								showSelectedHint
 								value={ contact.field }
 								options={ partnerFields.map(
 									( [ name, f ] ) => ( {
 										value: name,
-										label: `${ f.label } — ${ name }`,
+										label: f.label,
+										hint: name,
 									} )
 								) }
 								onChange={ set( 'field' ) }
