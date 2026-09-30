@@ -1,0 +1,33 @@
+/* Forms to Odoo: "Odoo" tab in the Contact Form 7 editor */
+.fto-panel .fto-model select { margin-right: 6px; }
+.fto-panel .fto-reload { margin-left: 8px; }
+.fto-panel .fto-mapping { max-width: 1100px; }
+.fto-panel .fto-mapping td { vertical-align: top; }
+.fto-panel .fto-mapping td:first-child { width: 34%; }
+.fto-panel .fto-mapping td:last-child { width: 30px; text-align: center; }
+.fto-panel .fto-field,
+.fto-panel .fto-mapping select { max-width: 100%; }
+.fto-panel .fto-mapping select[multiple] { min-width: 260px; }
+.fto-panel .fto-remove { color: #b32d2e; text-decoration: none; font-size: 16px; }
+.fto-panel .fto-error { color: #b32d2e; }
+.fto-panel .fto-warning { color: #996800; }
+.fto-panel .fto-tags { margin-top: 16px; }
+.fto-panel .fto-tags .button { margin: 0 4px 4px 0; font-family: monospace; }
+.fto-panel .fto-test { margin-top: 24px; padding-top: 8px; border-top: 1px solid #dcdcde; }
+.fto-panel .fto-samples summary { cursor: pointer; color: #2271b1; }
+.fto-panel .fto-samples .form-table th { width: 220px; padding: 6px 10px 6px 0; }
+.fto-panel .fto-samples .form-table td { padding: 6px 0; }
+.fto-panel .fto-test-result pre { white-space: pre-wrap; background: #f6f7f7; padding: 8px; max-height: 260px; overflow: auto; }
+.fto-panel .fto-choice-map { border-collapse: collapse; margin: 4px 0; }
+.fto-panel .fto-choice-map th { text-align: left; font-weight: 600; padding: 2px 16px 4px 0; }
+.fto-panel .fto-choice-map td { padding: 3px 16px 3px 0; }
+.fto-panel .fto-transform-toggle { margin-top: 4px; font-size: 12px; }
+.fto-panel .fto-transform { margin: 8px 0 4px; padding: 8px 12px 10px; border: 1px solid #dcdcde; background: #f6f7f7; }
+.fto-panel .fto-transform legend { padding: 0 4px; font-weight: 600; }
+.fto-panel .fto-transform label { display: flex; align-items: center; gap: 8px; margin: 4px 0; }
+.fto-panel .fto-transform label span { width: 140px; flex-shrink: 0; }
+.fto-panel .fto-transform .regular-text { flex: 1; }
+.fto-panel .fto-remove-transform { color: #b32d2e; font-size: 12px; margin-top: 4px; }
+.fto-panel .fto-preview { margin-top: 6px; font-size: 12px; }
+.fto-panel .fto-preview code { font-size: 12px; }
+.fto-panel .fto-preview .fto-nomatch { color: #996800; }
