@@ -249,6 +249,12 @@ function fto_render_log_tab() {
                         <?php if ($r->odoo_id): ?>
                             <a href="<?php echo esc_url(fto_record_url($r->model, (int) $r->odoo_id)); ?>" target="_blank">#<?php echo (int) $r->odoo_id; ?></a>
                         <?php else: ?>–<?php endif; ?>
+                        <?php if ($r->partner_id && $r->model === 'res.partner'): ?>
+                            <br><small><?php esc_html_e('existing contact, not duplicated', 'forms-to-odoo'); ?></small>
+                        <?php elseif ($r->partner_id): ?>
+                            <br><small><?php esc_html_e('Contact:', 'forms-to-odoo'); ?>
+                                <a href="<?php echo esc_url(fto_record_url('res.partner', (int) $r->partner_id)); ?>" target="_blank">#<?php echo (int) $r->partner_id; ?></a></small>
+                        <?php endif; ?>
                     </td>
                     <td>
                         <?php if ($r->error): ?><div class="fto-error"><?php echo esc_html($r->error); ?></div><?php endif; ?>
@@ -256,6 +262,12 @@ function fto_render_log_tab() {
                             <summary><?php esc_html_e('Sent values', 'forms-to-odoo'); ?></summary>
                             <pre><?php echo esc_html(wp_json_encode(json_decode($r->payload), JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES)); ?></pre>
                         </details>
+                        <?php if ($r->contact): ?>
+                            <details>
+                                <summary><?php esc_html_e('Contact lookup', 'forms-to-odoo'); ?></summary>
+                                <pre><?php echo esc_html(wp_json_encode(json_decode($r->contact), JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES)); ?></pre>
+                            </details>
+                        <?php endif; ?>
                     </td>
                     <td>
                         <?php if ($r->status !== 'sent'): ?>

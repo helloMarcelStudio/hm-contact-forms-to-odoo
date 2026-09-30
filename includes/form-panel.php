@@ -98,6 +98,19 @@ function fto_sanitize_settings($raw) {
         'enabled' => !empty($raw['enabled']),
         'model'   => preg_replace('/[^a-z0-9._]/', '', strtolower((string) ($raw['model'] ?? 'crm.lead'))) ?: 'crm.lead',
         'mapping' => $mapping,
+        'contact' => fto_sanitize_contact($raw['contact'] ?? []),
+    ];
+}
+
+function fto_sanitize_contact($contact) {
+    $contact = wp_parse_args(is_array($contact) ? $contact : [], fto_contact_defaults());
+    return [
+        'enabled' => !empty($contact['enabled']),
+        'email'   => sanitize_text_field((string) $contact['email']),
+        'name'    => sanitize_text_field((string) $contact['name']),
+        'phone'   => sanitize_text_field((string) $contact['phone']),
+        'field'   => preg_replace('/[^a-z0-9_]/', '', strtolower((string) $contact['field'])) ?: 'partner_id',
+        'create'  => !empty($contact['create']),
     ];
 }
 
@@ -184,6 +197,23 @@ add_action('admin_enqueue_scripts', function () {
             'preview'       => __('With the test values:', 'forms-to-odoo'),
             'previewEmpty'  => __('(empty, not sent)', 'forms-to-odoo'),
             'removeTransform' => __('Remove the transform', 'forms-to-odoo'),
+            'contact'       => __('Contact', 'forms-to-odoo'),
+            'contactLink'   => __('Link to an Odoo contact, found by email', 'forms-to-odoo'),
+            'contactLinkHelp' => __('The contact with the submitted email is set on the record, so each person has a single contact in Odoo.', 'forms-to-odoo'),
+            'contactDedupe' => __('Don\'t create duplicates: when a contact with this email exists, reuse it', 'forms-to-odoo'),
+            'contactDedupeHelp' => __('Nothing is created or changed in Odoo then; the log links to the existing contact.', 'forms-to-odoo'),
+            'contactEmail'  => __('Email', 'forms-to-odoo'),
+            'contactField'  => __('Set it in', 'forms-to-odoo'),
+            'contactCreate' => __('Create the contact when none has this email', 'forms-to-odoo'),
+            'contactName'   => __('Name', 'forms-to-odoo'),
+            'contactPhone'  => __('Phone', 'forms-to-odoo'),
+            'contactNameHint' => __('e.g. [your-name] (the email if empty)', 'forms-to-odoo'),
+            /* translators: %s: Odoo contact id */
+            'testPartner'   => __('Linked to contact #%s.', 'forms-to-odoo'),
+            /* translators: %s: Odoo contact id */
+            'testPartnerNew' => __('Created contact #%s: delete it too once checked.', 'forms-to-odoo'),
+            /* translators: %s: Odoo contact id */
+            'testExisting'  => __('A contact with this email already exists (#%s): nothing was created.', 'forms-to-odoo'),
         ],
     ]);
 });
@@ -263,11 +293,19 @@ add_action('wp_ajax_fto_test_send', function () {
     $values = fto_prepare_values($contact_form, $posted, $settings);
     if (!$values) wp_send_json_error(['message' => __('Nothing to send: every mapped value is empty.', 'forms-to-odoo'), 'values' => (object) []]);
 
-    $result = fto_call($settings['model'], 'create', ['vals_list' => [$values]]);
+    $result = fto_create_record($settings['model'], $values, fto_contact_for($settings, $posted));
     if (is_wp_error($result)) wp_send_json_error(['message' => $result->get_error_message(), 'values' => $values]);
 
-    $id = (int) ($result[0] ?? 0);
-    wp_send_json_success(['id' => $id, 'model' => $settings['model'], 'url' => fto_record_url($settings['model'], $id), 'values' => $values]);
+    wp_send_json_success([
+        'id'             => $result['id'],
+        'model'          => $settings['model'],
+        'url'            => fto_record_url($settings['model'], $result['id']),
+        'values'         => $values,
+        'partnerId'      => $result['partner_id'],
+        'partnerCreated' => $result['partner_created'],
+        'partnerUrl'     => $result['partner_id'] ? fto_record_url('res.partner', $result['partner_id']) : '',
+        'existing'       => $result['existing'],
+    ]);
 });
 
 /**

@@ -163,6 +163,40 @@ function fto_model_records($model, $refresh = false) {
     return $records;
 }
 
+/**
+ * The Odoo contact with this email (case-insensitive, oldest first), else
+ * a new one made from $create (['name', 'email', 'phone']) when given:
+ * ['id' => 42, 'created' => false], id 0 when none matched, or a WP_Error.
+ */
+function fto_find_partner($email, ?array $create = null) {
+    $email = trim((string) $email);
+    if ($email === '') return ['id' => 0, 'created' => false];
+
+    // =ilike treats "_" and "%" as wildcards: fetch the candidates, then
+    // keep an exact match only
+    $found = fto_call('res.partner', 'search_read', [
+        'domain' => [['email', '=ilike', $email]],
+        'fields' => ['email'],
+        'order'  => 'id',
+        'limit'  => 20,
+    ]);
+    if (is_wp_error($found)) return $found;
+    foreach ($found as $partner) {
+        if (strcasecmp(trim((string) ($partner['email'] ?? '')), $email) === 0) return ['id' => (int) $partner['id'], 'created' => false];
+    }
+    if (!$create) return ['id' => 0, 'created' => false];
+
+    // Odoo requires a name on a contact
+    $values = array_filter([
+        'name'  => trim((string) ($create['name'] ?? '')) ?: $email,
+        'email' => $email,
+        'phone' => trim((string) ($create['phone'] ?? '')),
+    ], 'strlen');
+    $created = fto_call('res.partner', 'create', ['vals_list' => [$values]]);
+    if (is_wp_error($created)) return $created;
+    return ['id' => (int) ($created[0] ?? 0), 'created' => true];
+}
+
 // Link to a record in the Odoo backend
 function fto_record_url($model, $id) {
     return untrailingslashit(fto_config('url')) . '/web#' . http_build_query(['id' => $id, 'model' => $model, 'view_type' => 'form']);

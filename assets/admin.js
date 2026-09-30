@@ -11,6 +11,7 @@
 	const MULTILINE = ["text", "html"];
 
 	const state = Object.assign({ enabled: false, model: "crm.lead", mapping: [] }, JSON.parse(store.value || "{}"));
+	state.contact = Object.assign({ enabled: false, email: "", name: "", phone: "", field: "partner_id", create: true }, state.contact);
 	let fields = null; // Odoo fields of state.model, null while unknown
 	let fieldsError = "";
 	const records = {}; // relation model => [{id, name}] | Promise | {error}
@@ -91,9 +92,17 @@
 		post("fto_test_send", { form_id: formId, settings: JSON.stringify(state), samples: JSON.stringify(samples) })
 			.then((json) => {
 				const data = json.data || {};
-				testResult = json.success
-					? { ok: true, message: i18n.testCreated.replace("%1$s", data.model).replace("%2$s", data.id), url: data.url, values: data.values }
-					: { ok: false, message: data.message || "Error", values: data.values };
+				if (!json.success) testResult = { ok: false, message: data.message || "Error", values: data.values };
+				else if (data.existing) testResult = { ok: true, existing: true, message: i18n.testExisting.replace("%s", data.id), url: data.url, values: data.values };
+				else testResult = {
+					ok: true,
+					message: i18n.testCreated.replace("%1$s", data.model).replace("%2$s", data.id),
+					url: data.url,
+					values: data.values,
+					partner: data.partnerId
+						? { text: (data.partnerCreated ? i18n.testPartnerNew : i18n.testPartner).replace("%s", data.partnerId), url: data.partnerUrl }
+						: null,
+				};
 			})
 			.catch((e) => { testResult = { ok: false, message: e.message }; })
 			.finally(render);
@@ -106,8 +115,9 @@
 					testResult.ok ? null : el("strong", { text: i18n.testFailed + " " }),
 					testResult.message + " ",
 					testResult.url ? el("a", { href: testResult.url, target: "_blank", text: i18n.testOpen }) : null,
-					testResult.ok ? " " + i18n.testDelete : null,
+					testResult.ok && !testResult.existing ? " " + i18n.testDelete : null,
 				]),
+				testResult.partner ? el("p", {}, el("a", { href: testResult.partner.url, target: "_blank", text: testResult.partner.text })) : null,
 				testResult.values && Object.keys(testResult.values).length
 					? el("details", {}, [
 						el("summary", { text: i18n.testSent }),
@@ -350,6 +360,66 @@
 		return el("em", { text: type });
 	};
 
+	// Odoo contact found by the submitted email (or created) and set on
+	// the record; for a res.partner form, reused instead of duplicated
+	const contactSection = () => {
+		const isPartner = state.model === "res.partner";
+		const partnerFields = Object.entries(fields).filter(([, f]) => f.type === "many2one" && f.relation === "res.partner");
+		if (!isPartner && !partnerFields.length) return null;
+
+		const c = state.contact;
+		if (!isPartner && !partnerFields.some(([name]) => name === c.field)) {
+			c.field = partnerFields.some(([name]) => name === "partner_id") ? "partner_id" : partnerFields[0][0];
+			save();
+		}
+		// first guess from the form's tag names, when turned on
+		const prefill = () => {
+			const find = (re) => tags.filter((t) => re.test(t));
+			if (!c.email) c.email = find(/mail/i).slice(0, 1).map((t) => `[${t}]`).join("");
+			if (!c.name) c.name = find(/name/i).filter((t) => !/company|user/i.test(t)).slice(0, 2).map((t) => `[${t}]`).join(" ");
+			if (!c.phone) c.phone = find(/phone|tel|gsm|mobile/i).slice(0, 1).map((t) => `[${t}]`).join("");
+		};
+		const template = (key, hint) => {
+			const input = el("input", {
+				type: "text",
+				class: "regular-text fto-template",
+				placeholder: hint,
+				oninput: (e) => { c[key] = e.target.value; save(); },
+				onfocus: (e) => { lastFocused = e.target; },
+			});
+			input.value = c[key] || "";
+			return input;
+		};
+		const row = (label, control) => el("tr", {}, [el("th", { scope: "row", text: label }), el("td", {}, control)]);
+
+		const rows = !c.enabled ? [] : [
+			row(i18n.contactEmail, template("email", i18n.templateHint)),
+			isPartner ? null : row(i18n.contactField, el("select", {
+				onchange: (e) => { c.field = e.target.value; save(); },
+			}, partnerFields.map(([name, f]) => el("option", { value: name, text: `${f.label} — ${name}`, selected: name === c.field })))),
+			isPartner ? null : row("", el("label", {}, [
+				el("input", { type: "checkbox", checked: !!c.create, onchange: (e) => { c.create = e.target.checked; save(); render(); } }),
+				" " + i18n.contactCreate,
+			])),
+			!isPartner && c.create ? row(i18n.contactName, template("name", i18n.contactNameHint)) : null,
+			!isPartner && c.create ? row(i18n.contactPhone, template("phone", i18n.templateHint)) : null,
+		];
+
+		return el("div", { class: "fto-contact" }, [
+			el("h3", { text: i18n.contact }),
+			el("p", {}, el("label", {}, [
+				el("input", {
+					type: "checkbox",
+					checked: !!c.enabled,
+					onchange: (e) => { c.enabled = e.target.checked; if (c.enabled) prefill(); save(); render(); },
+				}),
+				" " + (isPartner ? i18n.contactDedupe : i18n.contactLink),
+			])),
+			el("p", { class: "description", text: isPartner ? i18n.contactDedupeHelp : i18n.contactLinkHelp }),
+			rows.length ? el("table", { class: "form-table fto-contact-table" }, el("tbody", {}, rows)) : null,
+		]);
+	};
+
 	const fieldSelect = (row) => {
 		const used = new Set(state.mapping.map((r) => r.field));
 		const options = Object.entries(fields || {})
@@ -468,6 +538,9 @@
 			const mapped = new Set(state.mapping.map((r) => r.field));
 			const missing = Object.entries(fields).filter(([name, f]) => f.required && !mapped.has(name)).map(([, f]) => f.label);
 			if (missing.length) children.push(el("p", { class: "fto-warning", text: `${i18n.missingReq} ${missing.join(", ")}` }));
+
+			const contact = contactSection();
+			if (contact) children.push(contact);
 
 			if (tags.length) {
 				children.push(el("div", { class: "fto-tags" }, [

@@ -14,7 +14,7 @@
 defined('ABSPATH') || exit;
 
 const FTO_VERSION = '0.1.5';
-const FTO_DB_VERSION = '1';
+const FTO_DB_VERSION = '2';
 define('FTO_FILE', __FILE__);
 define('FTO_DIR', plugin_dir_path(__FILE__));
 define('FTO_URL', plugin_dir_url(__FILE__));

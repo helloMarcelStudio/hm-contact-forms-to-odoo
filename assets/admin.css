@@ -13,6 +13,9 @@
 .fto-panel .fto-warning { color: #996800; }
 .fto-panel .fto-tags { margin-top: 16px; }
 .fto-panel .fto-tags .button { margin: 0 4px 4px 0; font-family: monospace; }
+.fto-panel .fto-contact { margin-top: 24px; padding-top: 8px; border-top: 1px solid #dcdcde; }
+.fto-panel .fto-contact-table th { width: 160px; padding: 6px 10px 6px 0; }
+.fto-panel .fto-contact-table td { padding: 6px 0; }
 .fto-panel .fto-test { margin-top: 24px; padding-top: 8px; border-top: 1px solid #dcdcde; }
 .fto-panel .fto-samples summary { cursor: pointer; color: #2271b1; }
 .fto-panel .fto-samples .form-table th { width: 220px; padding: 6px 10px 6px 0; }

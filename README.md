@@ -21,6 +21,11 @@ Forms to Odoo turns Contact Form 7 submissions into Odoo records: CRM leads, con
   - **Map a form field**: each option of a select, radio or checkbox field is linked to an Odoo value. For example, "Français" → *French / Français*, or checkboxes → several tags.
 - **Regex transform** on any text field: find and replace with capture groups, optionally leaving the field empty when the pattern doesn't match. A live preview, computed by the same PHP code, shows the result with test values.
 
+**No duplicate contacts**
+- **Link to an Odoo contact, found by email**: the lead, ticket or task is linked to the contact that already has the submitted email (case-insensitive, oldest first), in `partner_id` or any other contact field. When no contact has that email, one is created from name and phone templates, or the record is sent without a contact if you turn creation off.
+- On a form that creates **contacts** (`res.partner`), an existing contact with the same email is reused instead of creating a duplicate.
+- The lookup runs when the record is sent, so a retry never creates the contact twice. A contact set explicitly in the mapping takes precedence.
+
 **Reliable sending**
 - Every valid submission is logged before being sent. It's sent even if the notification email fails, and never for spam.
 - **Automatic retries** when Odoo can't be reached (network error, timeout, 5xx, 429): after 5 min, 30 min, 2 h and 12 h.
@@ -72,6 +77,8 @@ The older `ODOO_URL`, `ODOO_DB` and `ODOO_API_KEY` names also work. A value save
 | many2many | fixed records, or map a form field | `[[6, 0, [ids]]]` (replace the links) |
 
 Empty values are never sent, so Odoo applies its defaults.
+
+**Contact lookup:** the email is matched exactly (ignoring case) against the contacts' **Email** field, archived contacts excluded. If the submitted email is empty or invalid, the record is sent without a contact.
 
 **Template tags:** any form tag, e.g. `[your-name]`. Multiple choices are joined with `, `. Contact Form 7's special tags such as `[_date]`, `[_url]` and `[_post_title]` also work.
 

@@ -22,9 +22,11 @@ function fto_install() {
         form_title varchar(200) NOT NULL DEFAULT '',
         model varchar(100) NOT NULL,
         payload longtext NOT NULL,
+        contact text NULL,
         status varchar(10) NOT NULL,
         attempts tinyint(3) unsigned NOT NULL DEFAULT 0,
         odoo_id bigint(20) unsigned NULL,
+        partner_id bigint(20) unsigned NULL,
         error text NULL,
         created_at datetime NOT NULL,
         updated_at datetime NOT NULL,
@@ -70,8 +72,9 @@ add_action('fto_cleanup', function () {
 
 // Stores a submission to send, returns its id. It's sent right away by the
 // caller; the retry job only picks it up if that attempt never finished
-// (e.g. PHP stopped mid-request), hence the first retry time.
-function fto_log_add($form_id, $form_title, $model, array $values) {
+// (e.g. PHP stopped mid-request), hence the first retry time. $contact is
+// the Odoo contact to find or create, see fto_contact_for().
+function fto_log_add($form_id, $form_title, $model, array $values, ?array $contact = null) {
     global $wpdb;
     $now = current_time('mysql', true);
     $wpdb->insert(fto_log_table(), [
@@ -79,6 +82,7 @@ function fto_log_add($form_id, $form_title, $model, array $values) {
         'form_title'      => mb_substr($form_title, 0, 200),
         'model'           => $model,
         'payload'         => wp_json_encode($values),
+        'contact'         => $contact ? wp_json_encode($contact) : null,
         'status'          => 'pending',
         'created_at'      => $now,
         'updated_at'      => $now,
@@ -103,7 +107,8 @@ function fto_send_entry($id) {
     if (!$entry || $entry->status === 'sent') return false;
 
     $values = json_decode($entry->payload, true) ?: [];
-    $result = fto_call($entry->model, 'create', ['vals_list' => [$values]]);
+    $contact = $entry->contact ? json_decode($entry->contact, true) : null;
+    $result = fto_create_record($entry->model, $values, is_array($contact) ? $contact : null);
     $attempts = (int) $entry->attempts + 1;
     $now = current_time('mysql', true);
 
@@ -111,12 +116,13 @@ function fto_send_entry($id) {
         $wpdb->update(fto_log_table(), [
             'status'          => 'sent',
             'attempts'        => $attempts,
-            'odoo_id'         => (int) ($result[0] ?? 0) ?: null,
+            'odoo_id'         => $result['id'] ?: null,
+            'partner_id'      => $result['partner_id'] ?: null,
             'error'           => null,
             'updated_at'      => $now,
             'next_attempt_at' => null,
         ], ['id' => $id]);
-        do_action('fto_sent', (int) ($result[0] ?? 0), $entry);
+        do_action('fto_sent', $result['id'], $entry);
         return true;
     }
 
