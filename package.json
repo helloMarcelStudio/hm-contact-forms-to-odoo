@@ -1,0 +1,17 @@
+{
+	"name": "forms-to-odoo",
+	"version": "0.1.5",
+	"private": true,
+	"description": "Send Contact Form 7 submissions to Odoo: per-form field mapping, send log and automatic retries.",
+	"license": "GPL-2.0-or-later",
+	"scripts": {
+		"env:start": "wp-env start",
+		"env:stop": "wp-env stop",
+		"env:clean": "wp-env clean all",
+		"env:logs": "wp-env logs",
+		"wp": "wp-env run cli wp"
+	},
+	"devDependencies": {
+		"@wordpress/env": "^11.16.0"
+	}
+}
