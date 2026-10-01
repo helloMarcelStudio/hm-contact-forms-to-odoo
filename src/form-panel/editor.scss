@@ -202,6 +202,12 @@
 			width: 34%;
 		}
 
+		// the Odoo field picker: models have many fields, show more at once
+		// than the default 128px (about 4 options)
+		td:first-child .components-form-token-field__suggestions-list {
+			max-height: 460px;
+		}
+
 		td:last-child {
 			width: 36px;
 			text-align: center;
