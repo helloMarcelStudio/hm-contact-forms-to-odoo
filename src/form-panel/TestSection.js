@@ -15,7 +15,13 @@ import {
 } from '@wordpress/components';
 import { data } from './data';
 
-export default function TestSection( { settings, samples, setSamples } ) {
+export default function TestSection( {
+	settings,
+	samples,
+	setSamples,
+	utmSample,
+	setUtmSample,
+} ) {
 	const [ sending, setSending ] = useState( false );
 	const [ result, setResult ] = useState( null );
 
@@ -25,7 +31,7 @@ export default function TestSection( { settings, samples, setSamples } ) {
 		apiFetch( {
 			path: '/fto/v1/test-send',
 			method: 'POST',
-			data: { form_id: data.formId, settings, samples },
+			data: { form_id: data.formId, settings, samples, utm: utmSample },
 		} )
 			.then( setResult, ( e ) =>
 				setResult( { ok: false, message: e.message } )
@@ -70,6 +76,33 @@ export default function TestSection( { settings, samples, setSamples } ) {
 								}
 							/>
 						) ) }
+						{ settings.utm?.enabled && (
+							<>
+								<p className="description">
+									{ __(
+										'UTM tags of the link the visitor came by:',
+										'forms-to-odoo'
+									) }
+								</p>
+								{ [ 'source', 'medium', 'campaign' ].map(
+									( key ) => (
+										<TextControl
+											key={ key }
+											__nextHasNoMarginBottom
+											__next40pxDefaultSize
+											label={ `utm_${ key }` }
+											value={ utmSample[ key ] }
+											onChange={ ( value ) =>
+												setUtmSample( {
+													...utmSample,
+													[ key ]: value,
+												} )
+											}
+										/>
+									)
+								) }
+							</>
+						) }
 					</PanelBody>
 				</Panel>
 			) }

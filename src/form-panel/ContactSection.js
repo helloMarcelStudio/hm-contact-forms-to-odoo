@@ -31,24 +31,33 @@ function guessTemplates( contact ) {
 export default function ContactSection( { model, contact, setContact } ) {
 	const { fields } = usePanel();
 	const isPartner = model === 'res.partner';
+	// one contact (e.g. a lead's Customer) or several (a booking's Attendees)
 	const partnerFields = Object.entries( fields ).filter(
-		( [ , f ] ) => f.type === 'many2one' && f.relation === 'res.partner'
+		( [ , f ] ) =>
+			[ 'many2one', 'many2many' ].includes( f.type ) &&
+			f.relation === 'res.partner'
 	);
+	const pick = ( field ) => ( {
+		...contact,
+		field,
+		multi: fields[ field ]?.type === 'many2many',
+	} );
 	const fieldOk = partnerFields.some(
 		( [ name ] ) => name === contact.field
 	);
 
-	// the saved field isn't on this model (anymore): partner_id, else the first one
+	// the saved field isn't on this model (anymore): partner_id, then
+	// partner_ids (a booking's attendees), else the first one
 	useEffect( () => {
 		if ( isPartner || fieldOk || ! partnerFields.length ) {
 			return;
 		}
-		const fallback = partnerFields.some(
-			( [ name ] ) => name === 'partner_id'
-		)
-			? 'partner_id'
-			: partnerFields[ 0 ][ 0 ];
-		setContact( { ...contact, field: fallback } );
+		const names = partnerFields.map( ( [ name ] ) => name );
+		const fallback =
+			[ 'partner_id', 'partner_ids' ].find( ( n ) =>
+				names.includes( n )
+			) || names[ 0 ];
+		setContact( pick( fallback ) );
 	}, [ isPartner, fieldOk, partnerFields.length ] ); // eslint-disable-line react-hooks/exhaustive-deps
 
 	if ( ! isPartner && ! partnerFields.length ) {
@@ -148,7 +157,9 @@ export default function ContactSection( { model, contact, setContact } ) {
 												hint: name,
 											} )
 										) }
-										onChange={ set( 'field' ) }
+										onChange={ ( field ) =>
+											setContact( pick( field ) )
+										}
 									/>
 								</Row>
 								<Row

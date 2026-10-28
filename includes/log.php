@@ -24,6 +24,8 @@ function fto_install() {
         model varchar(100) NOT NULL,
         payload longtext NOT NULL,
         contact text NULL,
+        utm text NULL,
+        booking text NULL,
         status varchar(10) NOT NULL,
         attempts tinyint(3) unsigned NOT NULL DEFAULT 0,
         odoo_id bigint(20) unsigned NULL,
@@ -74,8 +76,9 @@ add_action('fto_cleanup', function () {
 // Stores a submission to send, returns its id. It's sent right away by the
 // caller; the retry job only picks it up if that attempt never finished
 // (e.g. PHP stopped mid-request), hence the first retry time. $contact is
-// the Odoo contact to find or create, see fto_contact_for().
-function fto_log_add($form_id, $form_title, $model, array $values, ?array $contact = null) {
+// the Odoo contact to find or create, see fto_contact_for(), and $utm the
+// marketing source, see fto_utm_for().
+function fto_log_add($form_id, $form_title, $model, array $values, ?array $contact = null, ?array $utm = null, ?array $booking = null) {
     global $wpdb;
     $now = current_time('mysql', true);
     $wpdb->insert(fto_log_table(), [
@@ -84,6 +87,8 @@ function fto_log_add($form_id, $form_title, $model, array $values, ?array $conta
         'model'           => $model,
         'payload'         => wp_json_encode($values),
         'contact'         => $contact ? wp_json_encode($contact) : null,
+        'utm'             => $utm ? wp_json_encode($utm) : null,
+        'booking'         => $booking ? wp_json_encode($booking) : null,
         'status'          => 'pending',
         'created_at'      => $now,
         'updated_at'      => $now,
@@ -109,7 +114,9 @@ function fto_send_entry($id) {
 
     $values = json_decode($entry->payload, true) ?: [];
     $contact = $entry->contact ? json_decode($entry->contact, true) : null;
-    $result = fto_create_record($entry->model, $values, is_array($contact) ? $contact : null);
+    $utm = $entry->utm ? json_decode($entry->utm, true) : null;
+    $booking = $entry->booking ? json_decode($entry->booking, true) : null;
+    $result = fto_create_record($entry->model, $values, is_array($contact) ? $contact : null, is_array($utm) ? $utm : null, is_array($booking) ? $booking : null);
     $attempts = (int) $entry->attempts + 1;
     $now = current_time('mysql', true);
 

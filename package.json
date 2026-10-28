@@ -5,8 +5,8 @@
 	"description": "Send Contact Form 7 submissions to Odoo: per-form field mapping, send log and automatic retries.",
 	"license": "GPL-2.0-or-later",
 	"scripts": {
-		"build": "wp-scripts build form-panel=./src/form-panel/index.js settings=./src/settings/index.js",
-		"start": "wp-scripts start form-panel=./src/form-panel/index.js settings=./src/settings/index.js",
+		"build": "wp-scripts build form-panel=./src/form-panel/index.js settings=./src/settings/index.js utm=./src/utm/index.js",
+		"start": "wp-scripts start form-panel=./src/form-panel/index.js settings=./src/settings/index.js utm=./src/utm/index.js",
 		"lint:js": "wp-scripts lint-js src",
 		"env:start": "wp-env start",
 		"env:stop": "wp-env stop",

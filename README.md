@@ -26,6 +26,20 @@ Forms to Odoo turns Contact Form 7 submissions into Odoo records: CRM leads, con
 - On a form that creates **contacts** (`res.partner`), an existing contact with the same email is reused instead of creating a duplicate.
 - The lookup runs when the record is sent, so a retry never creates the contact twice. A contact set explicitly in the mapping takes precedence.
 
+**Booking requests (Odoo Appointments)**
+- **Create a: Booking request** turns a form into a booking in Odoo Appointments, e.g. a room for one or more nights: the visitor picks the room (a select or radio field, its options mapped to Odoo's resources) and the arrival and departure dates (two date fields). Check-in and check-out times are set per form, 15:00 and 11:00 by default.
+- Bookings are created as **requests**: the team confirms or refuses them in Odoo. Odoo emails the visitor nothing meanwhile; the form's own email acknowledges the request. No prices or payment.
+- **Availability is checked when the visitor sends the form**: a room already requested or booked for one of the nights shows an error on the form, and nothing is sent. If Odoo can't be reached, the visitor is asked to try again later. Each send checks again, so a retried send never double-books a room (it fails for the team to handle instead).
+- **Booked nights for a calendar**: a booking form gets a `data-fto-nights` attribute, the URL of `GET /wp-json/fto/v1/nights/{form}`. It returns the room and date field names and, per room option, the nights already booked or requested from today (`{"room": "room", "arrival": "arrival", "departure": "departure", "nights": {"The Blue Loft": ["2026-11-17", …]}}`): dates only, no booking details, cached a minute and refreshed after each request sent. A date picker can fetch it when the page loads and when the room changes, to grey those nights out. The plugin ships no calendar; the check when the form is sent still applies.
+- To preselect the room from a room's own page, add `default:get` to the field and link to the form with the room in the URL: `[select* room default:get "The Yellow Loft" "The Blue Loft"]` and `/booking/?room=The+Blue+Loft`.
+- The visitor is linked as an attendee through the **Contact** section (`partner_ids`).
+
+**Marketing source (UTM)**
+- Fills a lead's **Source**, **Medium** and **Campaign** from the `utm_source`, `utm_medium` and `utm_campaign` tags of the link the visitor arrived by, e.g. `?utm_source=newsletter&utm_medium=email&utm_campaign=spring`. The visitor can browse other pages before sending the form.
+- Without tags, the website they came from can be used instead: Google, Bing… with medium `organic`, Facebook, LinkedIn… with `social`, any other site's domain with `referral`.
+- Sources, mediums and campaigns are found in Odoo by name (ignoring case), and created when missing if you allow it. A field set in the mapping keeps its value.
+- Available on models with these fields, such as CRM leads.
+
 **Reliable sending**
 - Every valid submission is logged before being sent. It's sent even if the notification email fails, and never for spam.
 - **Automatic retries** when Odoo can't be reached (network error, timeout, 5xx, 429): after 5 min, 30 min, 2 h and 12 h.
@@ -78,6 +92,8 @@ The older `ODOO_URL`, `ODOO_DB` and `ODOO_API_KEY` names also work. A value save
 
 Empty values are never sent, so Odoo applies its defaults.
 
+**UTM tags** are remembered for 90 days in the visitor's browser (`localStorage`, nothing is sent until a form is), and replaced by the next tagged link. The small script that does it (1 KB) only loads on the website when at least one form uses this option. If your site asks visitors for consent before tracking, hold it back with the `fto_utm_capture` filter (see below).
+
 **Contact lookup:** the email is matched exactly (ignoring case) against the contacts' **Email** field, archived contacts excluded. If the submitted email is empty or invalid, the record is sent without a contact.
 
 **Template tags:** any form tag, e.g. `[your-name]`. Multiple choices are joined with `, `. Contact Form 7's special tags such as `[_date]`, `[_url]` and `[_post_title]` also work.
@@ -116,6 +132,14 @@ add_filter('fto_values', function (array $values, WPCF7_ContactForm $form, array
 
 The same filter runs for the editor's **Send a test record**, where there's no real submission: check `WPCF7_Submission::get_instance()` before using it, as above.
 
+### Filter: `fto_utm_capture`
+
+Return `false` to keep the UTM script off the website, e.g. until the visitor accepts marketing cookies:
+
+```php
+add_filter('fto_utm_capture', fn() => isset($_COOKIE['cookie_consent_marketing']));
+```
+
 ### Actions
 
 - `fto_sent` (`int $odoo_id, object $log_entry`): a record was created in Odoo.
@@ -128,6 +152,8 @@ The same filter runs for the editor's **Send a test record**, where there's no r
 | Connection | options `fto_url`, `fto_db`, `fto_api_key` |
 | Form settings | post meta `_fto_settings` on the Contact Form 7 form |
 | Send log | table `{prefix}fto_log` |
+| Whether any form uses UTM | option `fto_utm_enabled` |
+| Visitor's UTM tags | `localStorage` key `fto_utm` in their browser, sent with a form as the hidden `_fto_utm` field |
 | Odoo fields and records cache | transients, 1 h for fields and 10 min for records ("Refresh Odoo fields" clears them) |
 | Scheduled jobs | `fto_retry` (every 5 min), `fto_cleanup` (daily) |
 
@@ -147,8 +173,11 @@ includes/log.php         log table, retries (WP-Cron), cleanup
 includes/settings.php    Settings → Forms to Odoo page, failed sends notice
 includes/form-panel.php  "Odoo" tab in the CF7 editor, settings sanitizing
 includes/rest.php        REST API (fto/v1) behind both admin screens
+includes/utm.php         marketing source: UTM settings, Odoo lookup, website script
+includes/booking.php     booking requests: stay, availability check, Odoo values
 src/settings/            settings page app (React, @wordpress/components)
 src/form-panel/          "Odoo" tab app (React, @wordpress/components)
+src/utm/                 website script remembering UTM tags (no dependencies)
 build/                   compiled apps, committed so the plugin runs from git
 uninstall.php
 ```
@@ -186,7 +215,6 @@ Commit `build/` together with the `src/` changes that produced it.
 - Support for Odoo 17 and 18 (XML-RPC)
 - Gravity Forms, WPForms, Elementor Forms and Fluent Forms
 - File attachments
-- UTM / source tracking from the visitor's landing URL
 - Record search for large relational lists
 - French translation
 

@@ -22,16 +22,21 @@ const FTO_TEXT_TYPES = ['char', 'text', 'html', 'date', 'datetime', 'integer', '
  * 'contact' links the record to the Odoo contact with the submitted email
  * (see fto_create_record()): ['enabled', 'email', 'name', 'phone'
  * (templates), 'field' => 'partner_id', 'create' => bool].
+ * 'utm' fills Source, Medium and Campaign from the visitor's UTM tags,
+ * see utm.php.
  */
 function fto_form_settings($form_id) {
     $saved = get_post_meta($form_id, '_fto_settings', true);
-    $settings = wp_parse_args(is_array($saved) ? $saved : [], ['enabled' => false, 'model' => 'crm.lead', 'mapping' => [], 'contact' => []]);
+    $settings = wp_parse_args(is_array($saved) ? $saved : [], ['enabled' => false, 'model' => 'crm.lead', 'mapping' => [], 'contact' => [], 'utm' => [], 'booking' => []]);
     $settings['contact'] = wp_parse_args((array) $settings['contact'], fto_contact_defaults());
+    $settings['utm'] = wp_parse_args((array) $settings['utm'], fto_utm_defaults());
+    $settings['booking'] = wp_parse_args((array) $settings['booking'], fto_booking_defaults());
     return $settings;
 }
 
 function fto_contact_defaults() {
-    return ['enabled' => false, 'email' => '', 'name' => '', 'phone' => '', 'field' => 'partner_id', 'create' => true];
+    // 'multi': the field links several contacts (e.g. a booking's attendees)
+    return ['enabled' => false, 'email' => '', 'name' => '', 'phone' => '', 'field' => 'partner_id', 'multi' => false, 'create' => true];
 }
 
 /**
@@ -59,8 +64,11 @@ function fto_handle_submission($contact_form, array $posted, array $settings) {
     $values = fto_prepare_values($contact_form, $posted, $settings);
     if (!$values) return 0;
 
-    $id = fto_log_add($contact_form->id(), $contact_form->title(), $settings['model'], $values, fto_contact_for($settings, $posted));
+    // a booking's stay was checked when the form was sent
+    $booking = fto_booking_for($settings, $posted);
+    $id = fto_log_add($contact_form->id(), $contact_form->title(), $settings['model'], $values, fto_contact_for($settings, $posted), fto_utm_for($settings), is_array($booking) ? $booking : null);
     fto_send_entry($id);
+    if (is_array($booking)) fto_forget_booked_nights($contact_form->id());
     return $id;
 }
 
@@ -79,6 +87,7 @@ function fto_contact_for(array $settings, array $posted) {
         'name'   => fto_render_template((string) $contact['name'], $posted),
         'phone'  => fto_render_template((string) $contact['phone'], $posted),
         'field'  => (string) $contact['field'] ?: 'partner_id',
+        'multi'  => !empty($contact['multi']),
         'create' => !empty($contact['create']),
     ];
 }
@@ -88,11 +97,24 @@ function fto_contact_for(array $settings, array $posted) {
  * contact with the same email is found, or created, and set on the
  * record's contact field unless the mapping already fills it. When the
  * record is itself a contact (res.partner), an existing one is reused
- * instead of creating a duplicate. Finding before creating keeps retries
- * from making the contact twice.
+ * instead of creating a duplicate. With a marketing source (fto_utm_for()),
+ * Source, Medium and Campaign are found or created the same way. Finding
+ * before creating keeps retries from making anything twice. A booking
+ * (fto_booking_for()) is checked again first: a room taken in the meantime
+ * fails the send for the team to handle, instead of double-booking it.
  * Returns ['id', 'partner_id', 'partner_created', 'existing'] or a WP_Error.
  */
-function fto_create_record($model, array $values, ?array $contact = null) {
+function fto_create_record($model, array $values, ?array $contact = null, ?array $utm = null, ?array $booking = null) {
+    if ($booking) {
+        $taken = fto_booking_taken($booking);
+        if (is_wp_error($taken)) return $taken;
+        if ($taken) {
+            /* translators: 1: room, 2: arrival date, 3: departure date */
+            return new WP_Error('fto_booking_taken', sprintf(__('%1$s was booked for some of these nights (%2$s to %3$s) after this request was sent.', 'forms-to-odoo'), $booking['room'], $booking['arrival'], $booking['departure']), ['status' => 409]);
+        }
+        $values = fto_booking_values($booking) + $values;
+    }
+
     $partner = ['id' => 0, 'created' => false];
     if ($contact) {
         $is_partner = $model === 'res.partner';
@@ -101,10 +123,23 @@ function fto_create_record($model, array $values, ?array $contact = null) {
         if ($is_partner && $partner['id']) {
             return ['id' => $partner['id'], 'partner_id' => $partner['id'], 'partner_created' => false, 'existing' => true];
         }
-        if ($partner['id'] && empty($values[$contact['field']])) $values[$contact['field']] = $partner['id'];
+        if ($partner['id'] && !empty($contact['multi'])) {
+            // Command.link, next to any contacts the mapping links
+            $values[$contact['field']] = array_merge((array) ($values[$contact['field']] ?? []), [[4, $partner['id']]]);
+        } elseif ($partner['id'] && empty($values[$contact['field']])) {
+            $values[$contact['field']] = $partner['id'];
+        }
+    }
+    if ($utm) {
+        $utm_values = fto_utm_values($utm, $values);
+        if (is_wp_error($utm_values)) return $utm_values;
+        $values += $utm_values;
     }
 
-    $result = fto_call($model, 'create', ['vals_list' => [$values]]);
+    $args = ['vals_list' => [$values]];
+    // a booking request: Odoo doesn't email the visitor an invitation
+    if ($booking) $args['context'] = ['no_mail_to_attendees' => true];
+    $result = fto_call($model, 'create', $args);
     if (is_wp_error($result)) return $result;
     return ['id' => (int) ($result[0] ?? 0), 'partner_id' => $partner['id'], 'partner_created' => $partner['created'], 'existing' => false];
 }

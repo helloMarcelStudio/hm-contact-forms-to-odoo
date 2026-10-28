@@ -14,7 +14,7 @@
 defined('ABSPATH') || exit;
 
 const FTO_VERSION = '0.1.5';
-const FTO_DB_VERSION = '2';
+const FTO_DB_VERSION = '4';
 define('FTO_FILE', __FILE__);
 define('FTO_DIR', plugin_dir_path(__FILE__));
 define('FTO_URL', plugin_dir_url(__FILE__));
@@ -22,6 +22,8 @@ define('FTO_URL', plugin_dir_url(__FILE__));
 require FTO_DIR . 'includes/client.php';
 require FTO_DIR . 'includes/log.php';
 require FTO_DIR . 'includes/submission.php';
+require FTO_DIR . 'includes/utm.php';
+require FTO_DIR . 'includes/booking.php';
 // also outside wp-admin: the REST API uses their sanitizers and helpers
 require FTO_DIR . 'includes/settings.php';
 require FTO_DIR . 'includes/form-panel.php';

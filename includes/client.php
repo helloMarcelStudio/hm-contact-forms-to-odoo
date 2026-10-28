@@ -69,12 +69,38 @@ function fto_call($model, $method, array $args = [], $timeout = 15) {
 
     if ($status >= 300) {
         // Odoo errors come back as {"name": "odoo.exceptions.X", "message": "..."}
-        $message = is_array($body) && !empty($body['message'])
+        $from_odoo = is_array($body) && !empty($body['message']);
+        $message = $from_odoo
             ? $body['message']
-            : sprintf(__('Odoo answered with HTTP %d.', 'forms-to-odoo'), $status);
-        return new WP_Error('fto_http', $message, ['status' => $status, 'odoo_error' => $body['name'] ?? '']);
+            : trim(sprintf(__('Odoo answered with HTTP %d.', 'forms-to-odoo'), $status) . ' ' . fto_response_summary(wp_remote_retrieve_body($res)));
+        $hint = fto_status_hint($status, $from_odoo);
+        return new WP_Error('fto_http', $hint ? "$message $hint" : $message, ['status' => $status, 'odoo_error' => $body['name'] ?? '']);
     }
     return $body;
+}
+
+// What an error page says, in a few words: its <title>, else its start
+function fto_response_summary($text) {
+    if (preg_match('~<title[^>]*>(.*?)</title>~is', $text, $m)) $text = $m[1];
+    $text = trim(preg_replace('/\s+/u', ' ', wp_strip_all_tags(html_entity_decode($text))));
+    return mb_strlen($text) > 150 ? mb_substr($text, 0, 150) . '…' : $text;
+}
+
+// What to check for the statuses people actually run into
+function fto_status_hint($status, $from_odoo) {
+    switch ($status) {
+        case 401:
+            return __('Check the API key in Settings → Forms to Odoo: it may have expired (Odoo 19 keys have a duration) or been deleted.', 'forms-to-odoo');
+        case 403:
+            return $from_odoo
+                ? __('The Odoo user behind the API key isn\'t allowed to do this: check its access rights.', 'forms-to-odoo')
+                : __('The request was refused before Odoo handled it: a firewall or proxy in front of Odoo, or an Odoo plan without access to the external API.', 'forms-to-odoo');
+        case 404:
+            return __('Check the Odoo URL and, when the server hosts several databases, the database name.', 'forms-to-odoo');
+        case 429:
+            return __('Odoo is limiting requests for now: the send is retried later.', 'forms-to-odoo');
+    }
+    return '';
 }
 
 /**

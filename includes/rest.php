@@ -116,7 +116,9 @@ add_action('rest_api_init', function () {
             $values = fto_prepare_values($contact_form, $posted, $settings);
             if (!$values) return ['ok' => false, 'message' => __('Nothing to send: every mapped value is empty.', 'forms-to-odoo'), 'values' => (object) []];
 
-            $result = fto_create_record($settings['model'], $values, fto_contact_for($settings, $posted));
+            $booking = fto_booking_for($settings, $posted);
+            if (is_wp_error($booking)) return ['ok' => false, 'message' => $booking->get_error_message(), 'values' => $values];
+            $result = fto_create_record($settings['model'], $values, fto_contact_for($settings, $posted), fto_utm_for($settings, fto_sample_utm($request['utm'])), $booking);
             if (is_wp_error($result)) return ['ok' => false, 'message' => $result->get_error_message(), 'values' => $values];
 
             return [
@@ -150,6 +152,8 @@ add_action('rest_api_init', function () {
             return [
                 'values'  => (object) fto_prepare_values($contact_form, $posted, $settings),
                 'contact' => fto_contact_for($settings, $posted),
+                'utm'     => fto_utm_for($settings, fto_sample_utm($request['utm'])),
+                'booking' => fto_rest_booking(fto_booking_for($settings, $posted)),
             ];
         },
     ]);
@@ -200,6 +204,20 @@ function fto_sanitize_samples($samples) {
     return $posted;
 }
 
+// A stay for the summary: its details, or why the test values don't make one
+function fto_rest_booking($booking) {
+    if (is_wp_error($booking)) return ['error' => $booking->get_error_message()];
+    if (!$booking) return null;
+    $local = fn($utc) => wp_date(get_option('date_format') . ' ' . get_option('time_format'), strtotime($utc . ' UTC'));
+    return $booking + ['startLocal' => $local($booking['start']), 'stopLocal' => $local($booking['stop'])];
+}
+
+// The editor's test UTM tags, as the browser script would capture them
+function fto_sample_utm($utm) {
+    $utm = is_array($utm) ? $utm : [];
+    return ['source' => $utm['source'] ?? '', 'medium' => $utm['medium'] ?? '', 'campaign' => $utm['campaign'] ?? '', 'via' => 'utm'];
+}
+
 // Connection settings as shown on the settings page; the key never leaves
 function fto_rest_connection() {
     $constant = fn($key) => defined('FTO_ODOO_' . strtoupper($key)) || defined('ODOO_' . strtoupper($key));
@@ -231,5 +249,7 @@ function fto_rest_log_entry($r) {
         'error'       => (string) $r->error,
         'payload'     => json_decode($r->payload),
         'contact'     => $r->contact ? json_decode($r->contact) : null,
+        'utm'         => $r->utm ? json_decode($r->utm) : null,
+        'booking'     => $r->booking ? json_decode($r->booking) : null,
     ];
 }

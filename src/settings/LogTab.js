@@ -298,6 +298,20 @@ function LogRow( { entry, resending, disabled, onResend } ) {
 						<pre>{ json( entry.contact ) }</pre>
 					</details>
 				) }
+				{ entry.booking && (
+					<details>
+						<summary>{ __( 'Booking', 'forms-to-odoo' ) }</summary>
+						<pre>{ json( entry.booking ) }</pre>
+					</details>
+				) }
+				{ entry.utm && (
+					<details>
+						<summary>
+							{ __( 'Marketing source', 'forms-to-odoo' ) }
+						</summary>
+						<pre>{ json( entry.utm ) }</pre>
+					</details>
+				) }
 			</td>
 			<td>
 				{ entry.status !== 'sent' && (

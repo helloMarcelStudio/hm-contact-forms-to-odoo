@@ -163,6 +163,18 @@
 		&.is-link dd {
 			color: #008a20;
 		}
+
+		&.is-booking dd {
+			color: #b26200;
+		}
+
+		&.is-utm:not(.is-empty) dd {
+			color: #8a2d9e;
+
+			em {
+				color: #757575;
+			}
+		}
 	}
 
 	.fto-heading-help {
@@ -306,6 +318,16 @@
 	.fto-contact-table td:last-child {
 		width: auto;
 		text-align: left;
+	}
+
+	.fto-stay {
+		display: grid;
+		grid-template-columns: minmax(0, 1fr) 120px;
+		gap: 8px;
+	}
+
+	.fto-booking .fto-choice-map {
+		margin-top: 8px;
 	}
 
 	.fto-contact-table td:first-child .description {

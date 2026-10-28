@@ -15,6 +15,7 @@ function fto_known_models() {
         'helpdesk.ticket' => __('Helpdesk ticket', 'forms-to-odoo'),
         'project.task'    => __('Project task', 'forms-to-odoo'),
         'mailing.contact' => __('Mailing list contact', 'forms-to-odoo'),
+        'calendar.event'  => __('Booking request (Appointments)', 'forms-to-odoo'),
     ];
 }
 
@@ -100,6 +101,8 @@ function fto_sanitize_settings($raw) {
         'model'   => fto_sanitize_model($raw['model'] ?? 'crm.lead') ?: 'crm.lead',
         'mapping' => $mapping,
         'contact' => fto_sanitize_contact($raw['contact'] ?? []),
+        'utm'     => fto_sanitize_utm_settings($raw['utm'] ?? []),
+        'booking' => fto_sanitize_booking($raw['booking'] ?? []),
     ];
 }
 
@@ -111,6 +114,7 @@ function fto_sanitize_contact($contact) {
         'name'    => sanitize_text_field((string) $contact['name']),
         'phone'   => sanitize_text_field((string) $contact['phone']),
         'field'   => preg_replace('/[^a-z0-9_]/', '', strtolower((string) $contact['field'])) ?: 'partner_id',
+        'multi'   => !empty($contact['multi']),
         'create'  => !empty($contact['create']),
     ];
 }
@@ -143,6 +147,8 @@ add_action('admin_enqueue_scripts', function () {
         'choices'     => (object) fto_form_choices($contact_form),
         'formId'      => $contact_form->id(),
         'formTitle'   => $contact_form->title(),
+        'dateTags'    => array_values(array_unique(array_map(fn($t) => $t->name, $contact_form->scan_form_tags(['basetype' => 'date'])))),
+        'bookingFields' => FTO_BOOKING_FIELDS,
         'textTypes'   => FTO_TEXT_TYPES,
     ]);
 });
@@ -164,7 +170,8 @@ function fto_sample_values($contact_form) {
             'tel'                          => '+32 470 12 34 56',
             'url'                          => 'https://www.example.com',
             'number', 'range'              => '12',
-            'date'                         => wp_date('Y-m-d', strtotime('+2 weeks')),
+            // a stay: departure three nights after arrival
+            'date'                         => wp_date('Y-m-d', strtotime(preg_match('/out|depart|départ|end|leav|until|fin/i', $tag->name) ? '+17 days' : '+2 weeks')),
             'textarea'                     => __("Hello,\nWe are a group of 12 people and would like to book a guided tour in May. Could you send us your availability and prices?\nThank you!", 'forms-to-odoo'),
             'select', 'radio', 'checkbox'  => (string) ($options[0] ?? ''),
             'acceptance'                   => '1',

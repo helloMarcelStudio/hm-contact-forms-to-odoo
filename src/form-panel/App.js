@@ -19,6 +19,8 @@ import MappingRow from './MappingRow';
 import ContactSection from './ContactSection';
 import TestSection from './TestSection';
 import Summary from './Summary';
+import UtmSection from './UtmSection';
+import BookingSection from './BookingSection';
 
 const CONTACT_DEFAULTS = {
 	enabled: false,
@@ -38,12 +40,29 @@ export default function App( { store } ) {
 			mapping: [],
 			...saved,
 			contact: { ...CONTACT_DEFAULTS, ...saved.contact },
+			utm: { enabled: false, referrer: true, create: true, ...saved.utm },
+			booking: {
+				type_id: 0,
+				room_tag: '',
+				room_map: {},
+				checkin_tag: '',
+				checkout_tag: '',
+				checkin_time: '15:00',
+				checkout_time: '11:00',
+				...saved.booking,
+			},
 		};
 	} );
 	const [ fields, setFields ] = useState( null ); // Odoo fields of the model, null while loading
 	const [ fieldsError, setFieldsError ] = useState( '' );
 	const [ generation, setGeneration ] = useState( 0 ); // bumped by "Refresh Odoo fields"
 	const [ samples, setSamples ] = useState( () => ( { ...data.samples } ) );
+	// test UTM tags, as if the visitor came from a newsletter link
+	const [ utmSample, setUtmSample ] = useState( {
+		source: 'newsletter',
+		medium: 'email',
+		campaign: 'spring_tours_2026',
+	} );
 	const [ modelDraft, setModelDraft ] = useState( settings.model );
 	const tagTarget = useRef( null );
 	const bypassCache = useRef( false ); // next fields load skips the server cache
@@ -79,7 +98,11 @@ export default function App( { store } ) {
 						: {
 								...s,
 								mapping: Object.entries( loaded )
-									.filter( ( [ , f ] ) => f.required )
+									.filter(
+										( [ name, f ] ) =>
+											f.required &&
+											! bookingFills( model, name )
+									)
 									.map( ( [ name, f ] ) => ( {
 										field: name,
 										type: f.type,
@@ -241,12 +264,24 @@ export default function App( { store } ) {
 
 					{ ready && (
 						<>
+							{ settings.model === 'calendar.event' && (
+								<BookingSection
+									booking={ settings.booking }
+									setBooking={ ( booking ) =>
+										update( { booking } )
+									}
+								/>
+							) }
 							<ContactSection
 								model={ settings.model }
 								contact={ settings.contact }
 								setContact={ ( contact ) =>
 									update( { contact } )
 								}
+							/>
+							<UtmSection
+								utm={ settings.utm }
+								setUtm={ ( utm ) => update( { utm } ) }
 							/>
 							<Mapping
 								settings={ settings }
@@ -273,18 +308,25 @@ export default function App( { store } ) {
 							<MissingRequired
 								fields={ fields }
 								mapping={ settings.mapping }
+								model={ settings.model }
 							/>
 							<TagButtons />
 							<TestSection
 								settings={ settings }
 								samples={ samples }
 								setSamples={ setSamples }
+								utmSample={ utmSample }
+								setUtmSample={ setUtmSample }
 							/>
 						</>
 					) }
 				</div>
 				{ ready && (
-					<Summary settings={ settings } samples={ samples } />
+					<Summary
+						settings={ settings }
+						samples={ samples }
+						utmSample={ utmSample }
+					/>
 				) }
 			</div>
 		</PanelContext.Provider>
@@ -322,10 +364,23 @@ function Mapping( { settings, setRow, removeRow } ) {
 	);
 }
 
-function MissingRequired( { fields, mapping } ) {
+// A field a booking request fills itself (dates, appointment type…)
+function bookingFills( model, name ) {
+	return (
+		model === 'calendar.event' &&
+		( data.bookingFields || [] ).includes( name )
+	);
+}
+
+function MissingRequired( { fields, mapping, model } ) {
 	const mapped = new Set( mapping.map( ( r ) => r.field ) );
 	const missing = Object.entries( fields )
-		.filter( ( [ name, f ] ) => f.required && ! mapped.has( name ) )
+		.filter(
+			( [ name, f ] ) =>
+				f.required &&
+				! mapped.has( name ) &&
+				! bookingFills( model, name )
+		)
 		.map( ( [ , f ] ) => f.label );
 	if ( ! missing.length ) {
 		return null;

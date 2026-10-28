@@ -9,12 +9,13 @@ import { useEffect, useState } from '@wordpress/element';
 import { Spinner } from '@wordpress/components';
 import { data, usePanel, useRecords } from './data';
 import { HelpTip } from './controls';
+import { UTM_FIELDS } from './UtmSection';
 
-export default function Summary( { settings, samples } ) {
+export default function Summary( { settings, samples, utmSample } ) {
 	const { fields } = usePanel();
 	const [ preview, setPreview ] = useState( null ); // { values, contact }
 	const [ error, setError ] = useState( '' );
-	const request = JSON.stringify( { settings, samples } );
+	const request = JSON.stringify( { settings, samples, utm: utmSample } );
 
 	useEffect( () => {
 		let live = true;
@@ -120,6 +121,16 @@ export default function Summary( { settings, samples } ) {
 								linked={ row.field === linkField }
 							/>
 						) ) }
+						{ preview.booking && (
+							<BookingRows booking={ preview.booking } />
+						) }
+						{ settings.utm?.enabled && (
+							<UtmRows
+								utm={ preview.utm }
+								fields={ fields }
+								mapped={ rows.map( ( r ) => r.field ) }
+							/>
+						) }
 						{ showLink && (
 							<div className="fto-value is-link">
 								<dt>
@@ -261,4 +272,76 @@ function ValueText( { field, value } ) {
 		default:
 			return String( value );
 	}
+}
+
+// Source, Medium and Campaign, from the test UTM tags
+function UtmRows( { utm, fields, mapped } ) {
+	return Object.keys( UTM_FIELDS )
+		.filter( ( name ) => fields[ name ] && ! mapped.includes( name ) )
+		.map( ( name ) => {
+			const value = utm?.[ name.replace( '_id', '' ) ];
+			return (
+				<div
+					key={ name }
+					className={ `fto-value is-utm${ value ? '' : ' is-empty' }` }
+				>
+					<dt>{ fields[ name ].label }</dt>
+					<dd>
+						{ value ? (
+							<>
+								{ value }{ ' ' }
+								<em>
+									{ utm.create
+										? __(
+												'(found or created)',
+												'forms-to-odoo'
+											)
+										: __(
+												'(if it exists)',
+												'forms-to-odoo'
+											) }
+								</em>
+							</>
+						) : (
+							<em>
+								{ __(
+									'no UTM tag, not sent',
+									'forms-to-odoo'
+								) }
+							</em>
+						) }
+					</dd>
+				</div>
+			);
+		} );
+}
+
+// The stay: room and dates, or why the test values don't make one
+function BookingRows( { booking } ) {
+	if ( booking.error ) {
+		return (
+			<div className="fto-value is-empty">
+				<dt>{ __( 'Booking', 'forms-to-odoo' ) }</dt>
+				<dd>
+					<em>{ booking.error }</em>
+				</dd>
+			</div>
+		);
+	}
+	const rows = [
+		[ __( 'Room', 'forms-to-odoo' ), booking.room ],
+		[ __( 'Arrival', 'forms-to-odoo' ), booking.startLocal ],
+		[ __( 'Departure', 'forms-to-odoo' ), booking.stopLocal ],
+		[ __( 'Nights', 'forms-to-odoo' ), String( booking.nights ) ],
+		[
+			__( 'Status', 'forms-to-odoo' ),
+			__( 'Request, to confirm', 'forms-to-odoo' ),
+		],
+	];
+	return rows.map( ( [ label, value ] ) => (
+		<div key={ label } className="fto-value is-booking">
+			<dt>{ label }</dt>
+			<dd>{ value }</dd>
+		</div>
+	) );
 }
